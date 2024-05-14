@@ -13,7 +13,7 @@ import time
 from torchvision import transforms
 
 from constants import FPS
-from constants import PUPPET_GRIPPER_JOINT_OPEN
+from constants import FOLLOWER_GRIPPER_JOINT_OPEN
 from utils import load_data # data functions
 from utils import sample_box_pose, sample_insertion_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action # helper functions
@@ -56,7 +56,7 @@ def main(args):
         from constants import SIM_TASK_CONFIGS
         task_config = SIM_TASK_CONFIGS[task_name]
     else:
-        from aloha_scripts.constants import TASK_CONFIGS
+        from aloha.constants import TASK_CONFIGS
         task_config = TASK_CONFIGS[task_name]
     dataset_dir = task_config['dataset_dir']
     # num_episodes = task_config['num_episodes']
@@ -145,7 +145,7 @@ def main(args):
     config_path = os.path.join(ckpt_dir, 'config.pkl')
     expr_name = ckpt_dir.split('/')[-1]
     if not is_eval:
-        wandb.init(project="mobile-aloha2", reinit=True, entity="mobile-aloha2", name=expr_name)
+        wandb.init(project="MobileAloha", reinit=True, entity="lukeschmitt-tr", name=expr_name)
         wandb.config.update(config)
     with open(config_path, 'wb') as f:
         pickle.dump(config, f)
@@ -162,7 +162,20 @@ def main(args):
         print()
         exit()
 
-    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, name_filter, camera_names, batch_size_train, batch_size_val, args['chunk_size'], args['skip_mirrored_data'], config['load_pretrain'], policy_class, stats_dir_l=stats_dir, sample_weights=sample_weights, train_ratio=train_ratio)
+    train_dataloader, val_dataloader, stats, _ = load_data(
+        dataset_dir,
+        name_filter,
+        camera_names,
+        batch_size_train,
+        batch_size_val,
+        args['chunk_size'],
+        args['skip_mirrored_data'],
+        config['load_pretrain'],
+        policy_class,
+        stats_dir_l=stats_dir,
+        sample_weights=sample_weights,
+        train_ratio=train_ratio,
+    )
 
     # save dataset stats
     stats_path = os.path.join(ckpt_dir, f'dataset_stats.pkl')
@@ -221,7 +234,7 @@ def get_image(ts, camera_names, rand_crop_resize=False):
         resize_transform = transforms.Resize(original_size, antialias=True)
         curr_image = resize_transform(curr_image)
         curr_image = curr_image.unsqueeze(0)
-    
+
     return curr_image
 
 
@@ -280,7 +293,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     #     actuator_stats_path  = os.path.join(actuator_network_dir, 'actuator_net_stats.pkl')
     #     with open(actuator_stats_path, 'rb') as f:
     #         actuator_stats = pickle.load(f)
-        
+
     #     actuator_unnorm = lambda x: x * actuator_stats['commanded_speed_std'] + actuator_stats['commanded_speed_std']
     #     actuator_norm = lambda x: (x - actuator_stats['observed_speed_mean']) / actuator_stats['observed_speed_mean']
     #     def collect_base_action(all_actions, norm_episode_all_base_actions):
@@ -295,8 +308,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
 
     # load environment
     if real_robot:
-        from aloha_scripts.robot_utils import move_grippers # requires aloha
-        from aloha_scripts.real_env import make_real_env # requires aloha
+        from aloha.robot_utils import move_grippers # requires aloha
+        from aloha.real_env import make_real_env # requires aloha
         env = make_real_env(init_node=True, setup_robots=True, setup_base=True)
         env_max_reward = 0
     else:
@@ -349,7 +362,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         with torch.inference_mode():
             time0 = time.time()
             DT = 1 / FPS
-            culmulated_delay = 0 
+            culmulated_delay = 0
             for t in range(max_timesteps):
                 time1 = time.time()
                 ### update onscreen render and wait for DT
@@ -478,7 +491,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
             print(f'Avg fps {max_timesteps / (time.time() - time0)}')
             plt.close()
         if real_robot:
-            move_grippers([env.puppet_bot_left, env.puppet_bot_right], [PUPPET_GRIPPER_JOINT_OPEN] * 2, move_time=0.5)  # open
+            move_grippers([env.follower_bot_left, env.follower_bot_right], [FOLLOWER_GRIPPER_JOINT_OPEN] * 2, move_time=0.5)  # open
             # save qpos_history_raw
             log_id = get_auto_index(ckpt_dir)
             np.save(os.path.join(ckpt_dir, f'qpos_{log_id}.npy'), qpos_history_raw)
@@ -556,7 +569,7 @@ def train_bc(train_dataloader, val_dataloader, config):
 
     min_val_loss = np.inf
     best_ckpt_info = None
-    
+
     train_dataloader = repeater(train_dataloader)
     for step in tqdm(range(num_steps+1)):
         # validation
@@ -579,14 +592,14 @@ def train_bc(train_dataloader, val_dataloader, config):
                     min_val_loss = epoch_val_loss
                     best_ckpt_info = (step, min_val_loss, deepcopy(policy.serialize()))
             for k in list(validation_summary.keys()):
-                validation_summary[f'val_{k}'] = validation_summary.pop(k)            
+                validation_summary[f'val_{k}'] = validation_summary.pop(k)
             wandb.log(validation_summary, step=step)
             print(f'Val loss:   {epoch_val_loss:.5f}')
             summary_string = ''
             for k, v in validation_summary.items():
                 summary_string += f'{k}: {v.item():.3f} '
             print(summary_string)
-                
+
         # evaluation
         if (step > 0) and (step % eval_every == 0):
             # first save then eval
@@ -662,5 +675,5 @@ if __name__ == '__main__':
     parser.add_argument('--vq_class', action='store', type=int, help='vq_class')
     parser.add_argument('--vq_dim', action='store', type=int, help='vq_dim')
     parser.add_argument('--no_encoder', action='store_true')
-    
+
     main(vars(parser.parse_args()))

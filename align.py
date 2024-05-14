@@ -1,31 +1,45 @@
-from interbotix_xs_modules.arm import InterbotixManipulatorXS
-from aloha_scripts.robot_utils import move_arms, torque_on, move_grippers
-from constants import PUPPET_GRIPPER_JOINT_OPEN, PUPPET_GRIPPER_JOINT_CLOSE
-import argparse
+from aloha.aloha.robot_utils import move_arms, torque_on
+from interbotix_common_modules.common_robot.robot import (
+    create_interbotix_global_node,
+    robot_shutdown,
+    robot_startup,
+)
+from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
 import numpy as np
 
 # for calibrating head cam and arms being symmetrical
 
 def main():
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument('--all', action='store_true', default=False)
-    args = argparser.parse_args()
+    global_node = create_interbotix_global_node()
 
-    puppet_bot_left = InterbotixManipulatorXS(robot_model="vx300s", group_name="arm", gripper_name="gripper", robot_name=f'puppet_left', init_node=True)
-    puppet_bot_right = InterbotixManipulatorXS(robot_model="vx300s", group_name="arm", gripper_name="gripper", robot_name=f'puppet_right', init_node=False)
+    follower_bot_left = InterbotixManipulatorXS(
+        robot_model='vx300s',
+        group_name='arm',
+        gripper_name='gripper',
+        robot_name='follower_left',
+        node=global_node,
+    )
+    follower_bot_right = InterbotixManipulatorXS(
+        robot_model='vx300s',
+        group_name='arm',
+        gripper_name='gripper',
+        robot_name='follower_right',
+        node=global_node,
+    )
 
-    all_bots = [puppet_bot_left, puppet_bot_right]
+    robot_startup(global_node)
+
+    all_bots = [follower_bot_left, follower_bot_right]
     for bot in all_bots:
         torque_on(bot)
-    
+
     multiplier = np.array([-1, 1, 1, -1, 1, 1])
-    puppet_sleep_position_left = np.array([-0.8, -0.5, 0.5, 0, 0.65, 0])
-    puppet_sleep_position_right = puppet_sleep_position_left * multiplier
-    all_positions = [puppet_sleep_position_left, puppet_sleep_position_right]
-    move_arms(all_bots, all_positions, move_time=2)
+    follower_sleep_position_left = np.array([-0.8, -0.5, 0.5, 0, 0.65, 0])
+    follower_sleep_position_right = follower_sleep_position_left * multiplier
+    all_positions = [follower_sleep_position_left, follower_sleep_position_right]
+    move_arms(all_bots, all_positions, move_time=2.0)
 
-    # move_grippers(all_bots, [PUPPET_GRIPPER_JOINT_OPEN] * 2, move_time=1)  # open
-
+    robot_shutdown(global_node)
 
 if __name__ == '__main__':
     main()

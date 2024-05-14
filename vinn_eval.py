@@ -169,7 +169,7 @@ def main(args):
 
     # load environment
     if real_robot:
-        from aloha_scripts.real_env import make_real_env #### TODO TODO
+        from aloha.real_env import make_real_env #### TODO TODO
         env = make_real_env(init_node=True, setup_robots=True, setup_base=True)
         max_timesteps = sim_episode_len
         camera_names = ['cam_high', 'cam_left_wrist', 'cam_right_wrist']
@@ -270,10 +270,10 @@ def main(args):
                 #    e()
             plt.close()
         if real_robot:
-            env.puppet_bot_left.dxl.robot_set_operating_modes("single", "gripper", "position")
-            env.puppet_bot_right.dxl.robot_set_operating_modes("single", "gripper", "position")
-            env.puppet_bot_left.dxl.robot_set_operating_modes("single", "gripper", "pwm")
-            env.puppet_bot_right.dxl.robot_set_operating_modes("single", "gripper", "pwm")
+            env.follower_bot_left.dxl.robot_set_operating_modes("single", "gripper", "position")
+            env.follower_bot_right.dxl.robot_set_operating_modes("single", "gripper", "position")
+            env.follower_bot_left.dxl.robot_set_operating_modes("single", "gripper", "pwm")
+            env.follower_bot_right.dxl.robot_set_operating_modes("single", "gripper", "pwm")
 
         rewards = np.array(rewards)
         episode_return = np.sum(rewards[rewards!=None])

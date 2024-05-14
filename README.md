@@ -1,5 +1,4 @@
-# Imitation Learning algorithms and Co-training for Mobile ALOHA
-
+# Imitation Learning Algorithms and Co-training for Mobile ALOHA
 
 #### Project Website: https://mobile-aloha.github.io/
 
@@ -7,11 +6,12 @@ This repo contains the implementation of ACT, Diffusion Policy and VINN, togethe
 Transfer Cube and Bimanual Insertion. You can train and evaluate them in sim or real.
 For real, you would also need to install [Mobile ALOHA](https://github.com/MarkFzp/mobile-aloha). This repo is forked from the [ACT repo](https://github.com/tonyzhaozh/act).
 
-### Updates:
+### Updates
+
 You can find all scripted/human demo for simulated environments [here](https://drive.google.com/drive/folders/1gPR03v05S1xiInoVJn7G7VJ9pDCnxq9O?usp=share_link).
 
-
 ### Repo Structure
+
 - ``imitate_episodes.py`` Train and Evaluate ACT
 - ``policy.py`` An adaptor for ACT policy
 - ``detr`` Model definitions of ACT, modified from DETR
@@ -21,7 +21,6 @@ You can find all scripted/human demo for simulated environments [here](https://d
 - ``constants.py`` Constants shared across files
 - ``utils.py`` Utils such as data loading and helper functions
 - ``visualize_episodes.py`` Save videos from a .hdf5 dataset
-
 
 ### Installation
 
@@ -57,20 +56,25 @@ To set up a new terminal, run:
 We use ``sim_transfer_cube_scripted`` task in the examples below. Another option is ``sim_insertion_scripted``.
 To generated 50 episodes of scripted data, run:
 
-    python3 record_sim_episodes.py --task_name sim_transfer_cube_scripted --dataset_dir <data save dir> --num_episodes 50
+    ```bash
+    $ python3 record_sim_episodes.py --task_name sim_transfer_cube_scripted --dataset_dir <data save dir> --num_episodes 50
+    ```
 
 To can add the flag ``--onscreen_render`` to see real-time rendering.
 To visualize the simulated episodes after it is collected, run
 
-    python3 visualize_episodes.py --dataset_dir <data save dir> --episode_idx 0
+    ```bash
+    $ python3 visualize_episodes.py --dataset_dir <data save dir> --episode_idx 0
+    ```
 
 Note: to visualize data from the mobile-aloha hardware, use the visualize_episodes.py from https://github.com/MarkFzp/mobile-aloha
 
 To train ACT:
-    
-    # Transfer Cube task
-    python3 imitate_episodes.py --task_name sim_transfer_cube_scripted --ckpt_dir <ckpt dir> --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 --num_epochs 2000  --lr 1e-5 --seed 0
 
+    ```bash
+    # Transfer Cube task
+    $ python3 imitate_episodes.py --task_name sim_transfer_cube_scripted --ckpt_dir <ckpt dir> --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 --num_steps 2000  --lr 1e-5 --seed 0
+    ```
 
 To evaluate the policy, run the same command but add ``--eval``. This loads the best validation checkpoint.
 The success rate should be around 90% for transfer cube, and around 50% for insertion.

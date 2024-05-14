@@ -5,7 +5,7 @@ import argparse
 import matplotlib.pyplot as plt
 import h5py
 
-from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS
+from constants import FOLLOWER_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS
 from ee_sim_env import make_ee_sim_env
 from sim_env import make_sim_env, BOX_POSE
 from scripted_policy import PickAndTransferPolicy, InsertionPolicy
@@ -78,8 +78,8 @@ def main(args):
         # replace gripper pose with gripper control
         gripper_ctrl_traj = [ts.observation['gripper_ctrl'] for ts in episode]
         for joint, ctrl in zip(joint_traj, gripper_ctrl_traj):
-            left_ctrl = PUPPET_GRIPPER_POSITION_NORMALIZE_FN(ctrl[0])
-            right_ctrl = PUPPET_GRIPPER_POSITION_NORMALIZE_FN(ctrl[2])
+            left_ctrl = FOLLOWER_GRIPPER_POSITION_NORMALIZE_FN(ctrl[0])
+            right_ctrl = FOLLOWER_GRIPPER_POSITION_NORMALIZE_FN(ctrl[2])
             joint[6] = left_ctrl
             joint[6+7] = right_ctrl
 

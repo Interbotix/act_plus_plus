@@ -34,7 +34,19 @@ def get_sinusoid_encoding_table(n_position, d_hid):
 
 class DETRVAE(nn.Module):
     """ This is the DETR module that performs object detection """
-    def __init__(self, backbones, transformer, encoder, state_dim, num_queries, camera_names, vq, vq_class, vq_dim, action_dim):
+    def __init__(
+        self,
+        backbones,
+        transformer,
+        encoder,
+        state_dim,
+        num_queries,
+        camera_names,
+        vq,
+        vq_class,
+        vq_dim,
+        action_dim
+    ):
         """ Initializes the model.
         Parameters:
             backbones: torch module of the backbone to be used. See backbone.py
@@ -113,10 +125,14 @@ class DETRVAE(nn.Module):
                 pos_embed = self.pos_table.clone().detach()
                 pos_embed = pos_embed.permute(1, 0, 2)  # (seq+1, 1, hidden_dim)
                 # query model
-                encoder_output = self.encoder(encoder_input, pos=pos_embed, src_key_padding_mask=is_pad)
+                encoder_output = self.encoder(
+                    encoder_input,
+                    pos=pos_embed,
+                    src_key_padding_mask=is_pad,
+                )
                 encoder_output = encoder_output[0] # take cls output only
                 latent_info = self.latent_proj(encoder_output)
-                
+
                 if self.vq:
                     logits = latent_info.reshape([*latent_info.shape[:-1], self.vq_class, self.vq_dim])
                     probs = torch.softmax(logits, dim=-1)
@@ -282,7 +298,7 @@ def build(args):
     if args.no_encoder:
         encoder = None
     else:
-        encoder = build_transformer(args)
+        encoder = build_encoder(args)
 
     model = DETRVAE(
         backbones,

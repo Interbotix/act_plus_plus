@@ -20,7 +20,7 @@ e = IPython.embed
 
 def main():
     ### Idea
-    # input : o o o o o o # observed speed 
+    # input : o o o o o o # observed speed
     # target: a a a a a a # commanded speed
     # at test time, input desired speed profile and convert that to command
 
@@ -80,7 +80,7 @@ def main():
     val_dataset = EpisodicDataset(dataset_path_list, norm_stats, val_episode_ids, val_episode_len, history_len, future_len, prediction_len)
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size_val, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
-    
+
     policy = ActuatorNetwork(prediction_len).cuda()
     optimizer = torch.optim.AdamW(policy.parameters(), lr=lr, weight_decay=weight_decay)
 
@@ -110,7 +110,7 @@ def main():
                     min_val_loss = epoch_val_loss
                     best_ckpt_info = (step, min_val_loss, deepcopy(policy.state_dict()))
             for k in list(validation_summary.keys()):
-                validation_summary[f'val_{k}'] = validation_summary.pop(k)            
+                validation_summary[f'val_{k}'] = validation_summary.pop(k)
             wandb.log(validation_summary, step=step)
             print(f'Val loss:   {epoch_val_loss:.5f}')
             summary_string = ''
@@ -156,12 +156,12 @@ def visualize_prediction(dataset_path_list, episode_ids, policy, norm_stats, his
         try:
             with h5py.File(dataset_path, 'r') as root:
                 commanded_speed = root['/base_action'][()]
-                observed_speed = root['/obs_tracer'][()]
+                observed_speed = root['/obs_base'][()]
         except Exception as ee:
             print(f'Error loading {dataset_path} in get_norm_stats')
             print(ee)
             quit()
-        
+
         # commanded_speed = (commanded_speed - norm_stats["commanded_speed_mean"]) / norm_stats["commanded_speed_std"]
         norm_observed_speed = (observed_speed - norm_stats["observed_speed_mean"]) / norm_stats["observed_speed_std"]
         out_unnorm_fn = lambda x: (x * norm_stats["commanded_speed_std"]) + norm_stats["commanded_speed_mean"]
@@ -227,7 +227,7 @@ class ActuatorNetwork(nn.Module):
             src = torch.einsum('b s d -> s b d', src)
             src = self.pe(src)
             out = self.transformer(src)
-            
+
             tgt = torch.einsum('b s d -> s b d', tgt)
             assert(self.prediction_len == tgt.shape[0])
             out = out[0: self.prediction_len] # take first few tokens only for prediction
@@ -276,7 +276,7 @@ def get_norm_stats(dataset_path_list):
         try:
             with h5py.File(dataset_path, 'r') as root:
                 commanded_speed = root['/base_action'][()]
-                observed_speed = root['/obs_tracer'][()]
+                observed_speed = root['/obs_base'][()]
         except Exception as e:
             print(f'Error loading {dataset_path} in get_norm_stats')
             print(e)
@@ -338,7 +338,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
             # print(dataset_path)
             with h5py.File(dataset_path, 'r') as root:
                 commanded_speed = root['/base_action'][()]
-                observed_speed = root['/obs_tracer'][()]
+                observed_speed = root['/obs_base'][()]
                 observed_speed = np.concatenate([self.history_pad, observed_speed, self.future_pad], axis=0)
                 commanded_speed = np.concatenate([commanded_speed, self.prediction_pad], axis=0)
 

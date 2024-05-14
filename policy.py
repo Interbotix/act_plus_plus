@@ -46,7 +46,7 @@ class DiffusionPolicy(nn.Module):
         backbones = nn.ModuleList(backbones)
         pools = nn.ModuleList(pools)
         linears = nn.ModuleList(linears)
-        
+
         backbones = replace_bn_with_gn(backbones) # TODO
 
 
@@ -109,21 +109,21 @@ class DiffusionPolicy(nn.Module):
 
             # sample noise to add to actions
             noise = torch.randn(actions.shape, device=obs_cond.device)
-            
+
             # sample a diffusion iteration for each data point
             timesteps = torch.randint(
-                0, self.noise_scheduler.config.num_train_timesteps, 
+                0, self.noise_scheduler.config.num_train_timesteps,
                 (B,), device=obs_cond.device
             ).long()
-            
+
             # add noise to the clean actions according to the noise magnitude at each diffusion iteration
             # (this is the forward diffusion process)
             noisy_actions = self.noise_scheduler.add_noise(
                 actions, noise, timesteps)
-            
+
             # predict the noise residual
             noise_pred = nets['policy']['noise_pred_net'](noisy_actions, timesteps, global_cond=obs_cond)
-            
+
             # L2 loss
             all_l2 = F.mse_loss(noise_pred, noise, reduction='none')
             loss = (all_l2 * ~is_pad.unsqueeze(-1)).mean()
@@ -140,11 +140,11 @@ class DiffusionPolicy(nn.Module):
             Ta = self.action_horizon
             Tp = self.prediction_horizon
             action_dim = self.ac_dim
-            
+
             nets = self.nets
             if self.ema is not None:
                 nets = self.ema.averaged_model
-            
+
             all_features = []
             for cam_id in range(len(self.camera_names)):
                 cam_image = image[:, cam_id]
@@ -160,14 +160,14 @@ class DiffusionPolicy(nn.Module):
             noisy_action = torch.randn(
                 (B, Tp, action_dim), device=obs_cond.device)
             naction = noisy_action
-            
+
             # init scheduler
             self.noise_scheduler.set_timesteps(self.num_inference_timesteps)
 
             for k in self.noise_scheduler.timesteps:
                 # predict noise
                 noise_pred = nets['policy']['noise_pred_net'](
-                    sample=naction, 
+                    sample=naction,
                     timestep=k,
                     global_cond=obs_cond
                 )
@@ -216,7 +216,14 @@ class ACTPolicy(nn.Module):
             is_pad = is_pad[:, :self.model.num_queries]
 
             loss_dict = dict()
-            a_hat, is_pad_hat, (mu, logvar), probs, binaries = self.model(qpos, image, env_state, actions, is_pad, vq_sample)
+            a_hat, is_pad_hat, (mu, logvar), probs, binaries = self.model(
+                qpos,
+                image,
+                env_state,
+                actions,
+                is_pad,
+                vq_sample,
+            )
             if self.vq or self.model.encoder is None:
                 total_kld = [torch.tensor(0.0)]
             else:
@@ -244,7 +251,7 @@ class ACTPolicy(nn.Module):
         _, _, binaries, _, _ = self.model.encode(qpos, actions, is_pad)
 
         return binaries
-        
+
     def serialize(self):
         return self.state_dict()
 

@@ -10,7 +10,7 @@ from einops import rearrange
 import torch.nn.functional as F
 
 from constants import DT
-from constants import PUPPET_GRIPPER_JOINT_OPEN
+from constants import FOLLOWER_GRIPPER_JOINT_OPEN
 from utils import load_data # data functions
 from utils import sample_box_pose, sample_insertion_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict # helper functions
@@ -41,7 +41,7 @@ def main(args):
         from constants import SIM_TASK_CONFIGS
         task_config = SIM_TASK_CONFIGS[task_name]
     else:
-        from aloha_scripts.constants import TASK_CONFIGS
+        from aloha.constants import TASK_CONFIGS
         task_config = TASK_CONFIGS[task_name]
     dataset_dir = task_config['dataset_dir']
     num_episodes = task_config['num_episodes']
@@ -186,8 +186,8 @@ def get_image(ts, camera_names):
 
 #     # load environment
 #     if real_robot:
-#         from aloha_scripts.robot_utils import move_grippers # requires aloha
-#         from aloha_scripts.real_env import make_real_env # requires aloha
+#         from aloha.robot_utils import move_grippers # requires aloha
+#         from aloha.real_env import make_real_env # requires aloha
 #         env = make_real_env(init_node=True)
 #         env_max_reward = 0
 #     else:
@@ -286,7 +286,7 @@ def get_image(ts, camera_names):
 
 #             plt.close()
 #         if real_robot:
-#             move_grippers([env.puppet_bot_left, env.puppet_bot_right], [PUPPET_GRIPPER_JOINT_OPEN] * 2, move_time=0.5)  # open
+#             move_grippers([env.follower_bot_left, env.follower_bot_right], [FOLLOWER_GRIPPER_JOINT_OPEN] * 2, move_time=0.5)  # open
 #             pass
 
 #         rewards = np.array(rewards)

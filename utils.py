@@ -60,7 +60,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
                     base_action = root['/base_action'][()]
                     base_action = preprocess_base_action(base_action)
                     action = np.concatenate([root['/action'][()], base_action], axis=-1)
-                else:  
+                else:
                     action = root['/action'][()]
                     dummy_base_action = np.zeros([action.shape[0], 2])
                     action = np.concatenate([action, dummy_base_action], axis=-1)
@@ -72,12 +72,12 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 image_dict = dict()
                 for cam_name in self.camera_names:
                     image_dict[cam_name] = root[f'/observations/images/{cam_name}'][start_ts]
-                
+
                 if compressed:
                     for cam_name in image_dict.keys():
                         decompressed_image = cv2.imdecode(image_dict[cam_name], 1)
                         image_dict[cam_name] = np.array(decompressed_image)
-                
+
                 # get all actions after and including start_ts
                 if is_sim:
                     action = action[start_ts:]
@@ -138,8 +138,8 @@ class EpisodicDataset(torch.utils.data.Dataset):
 
             qpos_data = (qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats["qpos_std"]
 
-        except:
-            print(f'Error loading {dataset_path} in __getitem__')
+        except Exception as e:
+            print(f"Error loading {dataset_path} in __getitem__: '{e}'")
             quit()
 
         # print(image_data.dtype, qpos_data.dtype, action_data.dtype, is_pad.dtype)
@@ -254,15 +254,39 @@ def load_data(dataset_dir_l, name_filter, camera_names, batch_size_train, batch_
     norm_stats, _ = get_norm_stats(flatten_list([find_all_hdf5(stats_dir, skip_mirrored_data) for stats_dir in stats_dir_l]))
     print(f'Norm stats from: {stats_dir_l}')
 
-    batch_sampler_train = BatchSampler(batch_size_train, train_episode_len_l, sample_weights)
-    batch_sampler_val = BatchSampler(batch_size_val, val_episode_len_l, None)
+    batch_sampler_train = BatchSampler(
+        batch_size_train,
+        train_episode_len_l,
+        sample_weights,
+    )
+    batch_sampler_val = BatchSampler(
+        batch_size_val,
+        val_episode_len_l,
+        None,
+    )
 
     # print(f'train_episode_len: {train_episode_len}, val_episode_len: {val_episode_len}, train_episode_ids: {train_episode_ids}, val_episode_ids: {val_episode_ids}')
 
     # construct dataset and dataloader
-    train_dataset = EpisodicDataset(dataset_path_list, camera_names, norm_stats, train_episode_ids, train_episode_len, chunk_size, policy_class)
-    val_dataset = EpisodicDataset(dataset_path_list, camera_names, norm_stats, val_episode_ids, val_episode_len, chunk_size, policy_class)
-    train_num_workers = (8 if os.getlogin() == 'zfu' else 16) if train_dataset.augment_images else 2
+    train_dataset = EpisodicDataset(
+        dataset_path_list,
+        camera_names,
+        norm_stats,
+        train_episode_ids,
+        train_episode_len,
+        chunk_size,
+        policy_class,
+    )
+    val_dataset = EpisodicDataset(
+        dataset_path_list,
+        camera_names,
+        norm_stats,
+        val_episode_ids,
+        val_episode_len,
+        chunk_size,
+        policy_class,
+    )
+    train_num_workers = 8
     val_num_workers = 8 if train_dataset.augment_images else 2
     print(f'Augment images: {train_dataset.augment_images}, train_num_workers: {train_num_workers}, val_num_workers: {val_num_workers}')
     train_dataloader = DataLoader(train_dataset, batch_sampler=batch_sampler_train, pin_memory=True, num_workers=train_num_workers, prefetch_factor=2)
