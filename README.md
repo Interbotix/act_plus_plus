@@ -56,25 +56,25 @@ To set up a new terminal, run:
 We use ``sim_transfer_cube_scripted`` task in the examples below. Another option is ``sim_insertion_scripted``.
 To generated 50 episodes of scripted data, run:
 
-    ```bash
-    $ python3 record_sim_episodes.py --task_name sim_transfer_cube_scripted --dataset_dir <data save dir> --num_episodes 50
-    ```
+```bash
+$ python3 record_sim_episodes.py --task_name sim_transfer_cube_scripted --dataset_dir <data save dir> --num_episodes 50
+```
 
 To can add the flag ``--onscreen_render`` to see real-time rendering.
 To visualize the simulated episodes after it is collected, run
 
-    ```bash
-    $ python3 visualize_episodes.py --dataset_dir <data save dir> --episode_idx 0
-    ```
+```bash
+$ python3 visualize_episodes.py --dataset_dir <data save dir> --episode_idx 0
+```
 
 Note: to visualize data from the mobile-aloha hardware, use the visualize_episodes.py from https://github.com/MarkFzp/mobile-aloha
 
 To train ACT:
 
-    ```bash
-    # Transfer Cube task
-    $ python3 imitate_episodes.py --task_name sim_transfer_cube_scripted --ckpt_dir <ckpt dir> --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 --num_steps 2000  --lr 1e-5 --seed 0
-    ```
+```bash
+# Transfer Cube task
+$ python3 imitate_episodes.py --task_name sim_transfer_cube_scripted --ckpt_dir <ckpt dir> --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 --num_steps 2000  --lr 1e-5 --seed 0
+```
 
 To evaluate the policy, run the same command but add ``--eval``. This loads the best validation checkpoint.
 The success rate should be around 90% for transfer cube, and around 50% for insertion.
