@@ -2,7 +2,6 @@ from detr.main import (
     build_ACT_model_and_optimizer,
     build_CNNMLP_model_and_optimizer,
 )
-from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from diffusers.training_utils import EMAModel
 import numpy as np

@@ -1,30 +1,34 @@
 import os
-import numpy as np
-import cv2
-import h5py
-import argparse
 
+from aloha.constants import JOINT_NAMES
+import cv2
+import fnmatch
+import h5py
 import matplotlib.pyplot as plt
-from constants import DT
 import numpy as np
 import torch
-import os
-import h5py
-import pickle
-import fnmatch
-import cv2
-from time import time
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 
-import IPython
-e = IPython.embed
 
-def flatten_list(l):
-    return [item for sublist in l for item in sublist]
+STATE_NAMES = JOINT_NAMES + ['gripper']
+
+
+def flatten_list(list_to_flatten):
+    return [item for sublist in list_to_flatten for item in sublist]
+
 
 class EpisodicDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_path_list, camera_names, norm_stats, episode_ids, episode_len, chunk_size, policy_class):
+    def __init__(
+        self,
+        dataset_path_list,
+        camera_names,
+        norm_stats,
+        episode_ids,
+        episode_len,
+        chunk_size,
+        policy_class
+    ):
         super(EpisodicDataset).__init__()
         self.episode_ids = episode_ids
         self.dataset_path_list = dataset_path_list
@@ -40,7 +44,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
         else:
             self.augment_images = False
         self.transformations = None
-        self.__getitem__(0) # initialize self.is_sim and self.transformations
+        self.__getitem__(0)  # initialize self.is_sim and self.transformations
         self.is_sim = False
 
     # def __len__(self):
@@ -48,7 +52,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
 
     def _locate_transition(self, index):
         assert index < self.cumulative_len[-1]
-        episode_index = np.argmax(self.cumulative_len > index) # argmax returns first True index
+        episode_index = np.argmax(self.cumulative_len > index)  # argmax returns first True index
         start_ts = index - (self.cumulative_len[episode_index] - self.episode_len[episode_index])
         episode_id = self.episode_ids[episode_index]
         return episode_id, start_ts
@@ -59,10 +63,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
         try:
             # print(dataset_path)
             with h5py.File(dataset_path, 'r') as root:
-                try: # some legacy data does not have this attribute
-                    is_sim = root.attrs['sim']
-                except:
-                    is_sim = False
+                is_sim = root.attrs.get('sim', False)
                 compressed = root.attrs.get('compress', False)
                 if '/base_action' in root:
                     base_action = root['/base_action'][()]
@@ -76,7 +77,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 episode_len = original_action_shape[0]
                 # get observation at start_ts only
                 qpos = root['/observations/qpos'][start_ts]
-                qvel = root['/observations/qvel'][start_ts]
+                # qvel = root['/observations/qvel'][start_ts]
                 image_dict = dict()
                 for cam_name in self.camera_names:
                     image_dict[cam_name] = root[f'/observations/images/{cam_name}'][start_ts]
@@ -91,11 +92,15 @@ class EpisodicDataset(torch.utils.data.Dataset):
                     action = action[start_ts:]
                     action_len = episode_len - start_ts
                 else:
-                    action = action[max(0, start_ts - 1):] # hack, to make timesteps more aligned
-                    action_len = episode_len - max(0, start_ts - 1) # hack, to make timesteps more aligned
+                    # hack, to make timesteps more aligned
+                    action = action[max(0, start_ts - 1):]
+                    action_len = episode_len - max(0, start_ts - 1)
 
             # self.is_sim = is_sim
-            padded_action = np.zeros((self.max_episode_len, original_action_shape[1]), dtype=np.float32)
+            padded_action = np.zeros(
+                (self.max_episode_len, original_action_shape[1]),
+                dtype=np.float32,
+            )
             padded_action[:action_len] = action
             is_pad = np.zeros(self.max_episode_len)
             is_pad[action_len:] = 1
@@ -124,10 +129,12 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 original_size = image_data.shape[2:]
                 ratio = 0.95
                 self.transformations = [
-                    transforms.RandomCrop(size=[int(original_size[0] * ratio), int(original_size[1] * ratio)]),
+                    transforms.RandomCrop(
+                        size=[int(original_size[0] * ratio), int(original_size[1] * ratio)]
+                    ),
                     transforms.Resize(original_size, antialias=True),
                     transforms.RandomRotation(degrees=[-5.0, 5.0], expand=False),
-                    transforms.ColorJitter(brightness=0.3, contrast=0.4, saturation=0.5) #, hue=0.08)
+                    transforms.ColorJitter(brightness=0.3, contrast=0.4, saturation=0.5),
                 ]
 
             if self.augment_images:
@@ -163,7 +170,7 @@ def get_norm_stats(dataset_path_list):
         try:
             with h5py.File(dataset_path, 'r') as root:
                 qpos = root['/observations/qpos'][()]
-                qvel = root['/observations/qvel'][()]
+                # qvel = root['/observations/qvel'][()]
                 if '/base_action' in root:
                     base_action = root['/base_action'][()]
                     base_action = preprocess_base_action(base_action)
@@ -185,34 +192,42 @@ def get_norm_stats(dataset_path_list):
     # normalize action data
     action_mean = all_action_data.mean(dim=[0]).float()
     action_std = all_action_data.std(dim=[0]).float()
-    action_std = torch.clip(action_std, 1e-2, np.inf) # clipping
+    action_std = torch.clip(action_std, 1e-2, np.inf)  # clipping
 
     # normalize qpos data
     qpos_mean = all_qpos_data.mean(dim=[0]).float()
     qpos_std = all_qpos_data.std(dim=[0]).float()
-    qpos_std = torch.clip(qpos_std, 1e-2, np.inf) # clipping
+    qpos_std = torch.clip(qpos_std, 1e-2, np.inf)  # clipping
 
     action_min = all_action_data.min(dim=0).values.float()
     action_max = all_action_data.max(dim=0).values.float()
 
     eps = 0.0001
-    stats = {"action_mean": action_mean.numpy(), "action_std": action_std.numpy(),
-             "action_min": action_min.numpy() - eps,"action_max": action_max.numpy() + eps,
-             "qpos_mean": qpos_mean.numpy(), "qpos_std": qpos_std.numpy(),
-             "example_qpos": qpos}
+    stats = {
+        "action_mean": action_mean.numpy(),
+        "action_std": action_std.numpy(),
+        "action_min": action_min.numpy() - eps,
+        "action_max": action_max.numpy() + eps,
+        "qpos_mean": qpos_mean.numpy(),
+        "qpos_std": qpos_std.numpy(),
+        "example_qpos": qpos
+    }
 
     return stats, all_episode_len
+
 
 def find_all_hdf5(dataset_dir, skip_mirrored_data):
     hdf5_files = []
     for root, dirs, files in os.walk(dataset_dir):
         for filename in fnmatch.filter(files, '*.hdf5'):
-            if 'features' in filename: continue
+            if 'features' in filename:
+                continue
             if skip_mirrored_data and 'mirror' in filename:
                 continue
             hdf5_files.append(os.path.join(root, filename))
     print(f'Found {len(hdf5_files)} hdf5 files')
     return hdf5_files
+
 
 def BatchSampler(batch_size, episode_len_l, sample_weights):
     sample_probs = np.array(sample_weights) / np.sum(sample_weights) if sample_weights is not None else None
@@ -224,6 +239,7 @@ def BatchSampler(batch_size, episode_len_l, sample_weights):
             step_idx = np.random.randint(sum_dataset_len_l[episode_idx], sum_dataset_len_l[episode_idx + 1])
             batch.append(step_idx)
         yield batch
+
 
 def load_data(
     dataset_dir_l,
@@ -286,8 +302,6 @@ def load_data(
         None,
     )
 
-    # print(f'train_episode_len: {train_episode_len}, val_episode_len: {val_episode_len}, train_episode_ids: {train_episode_ids}, val_episode_ids: {val_episode_ids}')
-
     # construct dataset and dataloader
     train_dataset = EpisodicDataset(
         dataset_path_list,
@@ -315,25 +329,29 @@ def load_data(
 
     return train_dataloader, val_dataloader, norm_stats, train_dataset.is_sim
 
+
 def calibrate_linear_vel(base_action, c=None):
     if c is None:
-        c = 0.0 # 0.19
+        c = 0.0  # 0.19
     v = base_action[..., 0]
     w = base_action[..., 1]
     base_action = base_action.copy()
     base_action[..., 0] = v - c * w
     return base_action
 
+
 def smooth_base_action(base_action):
     return np.stack([
         np.convolve(base_action[:, i], np.ones(5)/5, mode='same') for i in range(base_action.shape[1])
     ], axis=-1).astype(np.float32)
+
 
 def preprocess_base_action(base_action):
     # base_action = calibrate_linear_vel(base_action)
     base_action = smooth_base_action(base_action)
 
     return base_action
+
 
 def postprocess_base_action(base_action):
     linear_vel, angular_vel = base_action
@@ -344,45 +362,8 @@ def postprocess_base_action(base_action):
     #     linear_vel = 0
     return np.array([linear_vel, angular_vel])
 
-### env utils
 
-def sample_box_pose():
-    x_range = [0.0, 0.2]
-    y_range = [0.4, 0.6]
-    z_range = [0.05, 0.05]
-
-    ranges = np.vstack([x_range, y_range, z_range])
-    cube_position = np.random.uniform(ranges[:, 0], ranges[:, 1])
-
-    cube_quat = np.array([1, 0, 0, 0])
-    return np.concatenate([cube_position, cube_quat])
-
-def sample_insertion_pose():
-    # Peg
-    x_range = [0.1, 0.2]
-    y_range = [0.4, 0.6]
-    z_range = [0.05, 0.05]
-
-    ranges = np.vstack([x_range, y_range, z_range])
-    peg_position = np.random.uniform(ranges[:, 0], ranges[:, 1])
-
-    peg_quat = np.array([1, 0, 0, 0])
-    peg_pose = np.concatenate([peg_position, peg_quat])
-
-    # Socket
-    x_range = [-0.2, -0.1]
-    y_range = [0.4, 0.6]
-    z_range = [0.05, 0.05]
-
-    ranges = np.vstack([x_range, y_range, z_range])
-    socket_position = np.random.uniform(ranges[:, 0], ranges[:, 1])
-
-    socket_quat = np.array([1, 0, 0, 0])
-    socket_pose = np.concatenate([socket_position, socket_quat])
-
-    return peg_pose, socket_pose
-
-### helper functions
+# helper functions
 
 def compute_dict_mean(epoch_dicts):
     result = {k: None for k in epoch_dicts[0]}
@@ -394,16 +375,17 @@ def compute_dict_mean(epoch_dicts):
         result[k] = value_sum / num_items
     return result
 
+
 def detach_dict(d):
     new_d = dict()
     for k, v in d.items():
         new_d[k] = v.detach()
     return new_d
 
+
 def set_seed(seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
-
 
 
 def save_videos(video, dt, video_path=None):
@@ -418,7 +400,7 @@ def save_videos(video, dt, video_path=None):
             images = []
             for cam_name in cam_names:
                 image = image_dict[cam_name]
-                image = image[:, :, [2, 1, 0]] # swap B and R channel
+                image = image[:, :, [2, 1, 0]]  # swap B and R channel
                 images.append(image)
             images = np.concatenate(images, axis=1)
             out.write(images)
@@ -430,7 +412,7 @@ def save_videos(video, dt, video_path=None):
         all_cam_videos = []
         for cam_name in cam_names:
             all_cam_videos.append(video[cam_name])
-        all_cam_videos = np.concatenate(all_cam_videos, axis=2) # width dimension
+        all_cam_videos = np.concatenate(all_cam_videos, axis=2)  # width dimension
 
         n_frames, h, w, _ = all_cam_videos.shape
         fps = int(1 / dt)
@@ -449,7 +431,7 @@ def visualize_joints(qpos_list, command_list, plot_path=None, ylim=None, label_o
     else:
         label1, label2 = 'State', 'Command'
 
-    qpos = np.array(qpos_list) # ts, dim
+    qpos = np.array(qpos_list)  # ts, dim
     command = np.array(command_list)
     num_ts, num_dim = qpos.shape
     h, w = 2, num_dim
@@ -480,6 +462,7 @@ def visualize_joints(qpos_list, command_list, plot_path=None, ylim=None, label_o
     print(f'Saved qpos plot to: {plot_path}')
     plt.close()
 
+
 def visualize_timestamp(t_list, dataset_path):
     plot_path = dataset_path.replace('.pkl', '_timestamp.png')
     h, w = 4, 10
@@ -492,13 +475,13 @@ def visualize_timestamp(t_list, dataset_path):
 
     ax = axs[0]
     ax.plot(np.arange(len(t_float)), t_float)
-    ax.set_title(f'Camera frame timestamps')
+    ax.set_title('Camera frame timestamps')
     ax.set_xlabel('timestep')
     ax.set_ylabel('time (sec)')
 
     ax = axs[1]
     ax.plot(np.arange(len(t_float)-1), t_float[:-1] - t_float[1:])
-    ax.set_title(f'dt')
+    ax.set_title('dt')
     ax.set_xlabel('timestep')
     ax.set_ylabel('time (sec)')
 
@@ -507,6 +490,7 @@ def visualize_timestamp(t_list, dataset_path):
     print(f'Saved timestamp plot to: {plot_path}')
     plt.close()
 
+
 def load_hdf5(dataset_dir, dataset_name):
     dataset_path = os.path.join(dataset_dir, dataset_name + '.hdf5')
     if not os.path.isfile(dataset_path):
@@ -514,13 +498,11 @@ def load_hdf5(dataset_dir, dataset_name):
         exit()
 
     with h5py.File(dataset_path, 'r') as root:
-        is_sim = root.attrs['sim']
         qpos = root['/observations/qpos'][()]
         qvel = root['/observations/qvel'][()]
         action = root['/action'][()]
         image_dict = dict()
-        for cam_name in root[f'/observations/images/'].keys():
+        for cam_name in root['/observations/images/'].keys():
             image_dict[cam_name] = root[f'/observations/images/{cam_name}'][()]
 
     return qpos, qvel, action, image_dict
-
