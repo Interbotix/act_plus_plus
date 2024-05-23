@@ -40,6 +40,7 @@ You can find all scripted/human demo for simulated environments [here](https://d
     pip install packaging
     pip install h5py
     pip install ipython
+    pip install wandb
     cd act/detr && pip install -e .
 
 - also need to install https://github.com/ARISE-Initiative/robomimic/tree/r2d2 (note the r2d2 branch) for Diffusion Policy by `pip install -e .`

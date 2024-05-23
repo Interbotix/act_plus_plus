@@ -1,12 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from pyquaternion import Quaternion
 
-from constants import SIM_TASK_CONFIGS
-from ee_sim_env import make_ee_sim_env
-
-import IPython
-e = IPython.embed
+from act_plus_plus.constants import SIM_TASK_CONFIGS
+from act_plus_plus.ee_sim_env import make_ee_sim_env
 
 
 class BasePolicy:
