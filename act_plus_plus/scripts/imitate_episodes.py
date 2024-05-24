@@ -5,7 +5,7 @@ import os
 import pickle
 import time
 
-from aloha.constants import FPS, FOLLOWER_GRIPPER_JOINT_OPEN
+from aloha.constants import FPS, FOLLOWER_GRIPPER_JOINT_OPEN, TASK_CONFIGS
 from einops import rearrange
 import matplotlib.pyplot as plt
 import numpy as np
@@ -52,13 +52,7 @@ def main(args):
     resume_ckpt_path = args['resume_ckpt_path']
 
     # get task parameters
-    is_sim = task_name[:4] == 'sim_'
-    if is_sim or task_name == 'all':
-        from act_plus_plus.constants import SIM_TASK_CONFIGS
-        task_config = SIM_TASK_CONFIGS[task_name]
-    else:
-        from aloha.constants import TASK_CONFIGS
-        task_config = TASK_CONFIGS[task_name]
+    task_config = TASK_CONFIGS[task_name]
     dataset_dir = task_config['dataset_dir']
     # num_episodes = task_config['num_episodes']
     episode_len = task_config['episode_len']

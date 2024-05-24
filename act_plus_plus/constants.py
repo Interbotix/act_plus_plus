@@ -1,7 +1,6 @@
 # flake8: noqa
 
 import os
-import pathlib
 
 # Try to import ALOHA package's DATA_DIR, else default to ~/aloha_data
 try:
