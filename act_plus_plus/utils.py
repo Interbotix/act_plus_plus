@@ -249,7 +249,6 @@ def load_data(
     batch_size_val,
     chunk_size,
     skip_mirrored_data=False,
-    load_pretrain=False,
     policy_class=None,
     stats_dir_l=None,
     sample_weights=None,
@@ -273,12 +272,6 @@ def load_data(
     train_episode_ids = np.concatenate(train_episode_ids_l)
     val_episode_ids = np.concatenate(val_episode_ids_l)
     print(f'\n\nData from: {dataset_dir_l}\n- Train on {[len(x) for x in train_episode_ids_l]} episodes\n- Test on {[len(x) for x in val_episode_ids_l]} episodes\n\n')
-
-    # obtain normalization stats for qpos and action
-    # if load_pretrain:
-    #     with open(os.path.join('/home/zfu/interbotix_ws/src/act/ckpts/pretrain_all', 'dataset_stats.pkl'), 'rb') as f:
-    #         norm_stats = pickle.load(f)
-    #     print('Loaded pretrain dataset stats')
     _, all_episode_len = get_norm_stats(dataset_path_list)
     train_episode_len_l = [[all_episode_len[i] for i in train_episode_ids] for train_episode_ids in train_episode_ids_l]
     val_episode_len_l = [[all_episode_len[i] for i in val_episode_ids] for val_episode_ids in val_episode_ids_l]

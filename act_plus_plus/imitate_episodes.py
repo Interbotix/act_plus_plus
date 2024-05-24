@@ -125,13 +125,12 @@ def main(args):
         'ckpt_dir': ckpt_dir,
         'episode_len': episode_len,
         'eval_every': eval_every,
-        'load_pretrain': args['load_pretrain'],
         'lr': args['lr'],
         'num_steps': num_steps,
         'onscreen_render': onscreen_render,
         'policy_class': policy_class,
         'policy_config': policy_config,
-        'real_robot': not is_sim,
+        'real_robot': True,
         'resume_ckpt_path': resume_ckpt_path,
         'save_every': save_every,
         'seed': args['seed'],
@@ -181,7 +180,6 @@ def main(args):
         batch_size_val,
         args['chunk_size'],
         args['skip_mirrored_data'],
-        config['load_pretrain'],
         policy_class,
         stats_dir_l=stats_dir,
         sample_weights=sample_weights,
@@ -532,16 +530,6 @@ def train_bc(train_dataloader, val_dataloader, config):
     set_seed(seed)
 
     policy = make_policy(policy_class, policy_config)
-    if config['load_pretrain']:
-        loading_status = policy.deserialize(
-            torch.load(
-                os.path.join(
-                    '/home/zfu/interbotix_ws/src/act/ckpts/pretrain_all',
-                    'policy_step_50000_seed_0.ckpt'
-                )
-            )
-        )
-        print(f'loaded! {loading_status}')
     if config['resume_ckpt_path'] is not None:
         loading_status = policy.deserialize(torch.load(config['resume_ckpt_path']))
         print(f'Resume policy from: {config["resume_ckpt_path"]}, Status: {loading_status}')
@@ -686,12 +674,6 @@ if __name__ == '__main__':
         type=float,
         help='Training learning rate',
         required=True
-    )
-    parser.add_argument(
-        '--load_pretrain',
-        action='store_true',
-        help='Load pretrained model',
-        default=False
     )
     parser.add_argument(
         '--eval_every',
