@@ -1,8 +1,9 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import argparse
+
 import torch
 
-from .models import build_ACT_model, build_CNNMLP_model
+from detr.models import build_ACT_model, build_CNNMLP_model
 
 
 def get_args_parser():

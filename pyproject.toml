@@ -1,0 +1,7 @@
+[project]
+name = "act_plus_plus"
+version = "0.0.0"
+license = {file = "LICENSE"}
+
+[build-system]
+requires = ["setuptools"]
