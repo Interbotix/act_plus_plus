@@ -31,20 +31,22 @@ Using ``venv`` is preferred due its ease of use against frameworks like ROS.
 sudo apt-get install python3-venv
 python3 -m venv ~/act # creates a venv "act" in the home directory, can be created anywhere
 source ~/act/bin/activate
-pip install torchvision
-pip install torch
+pip install dm_control==1.0.14
+pip install einops
+pip install h5py
+pip install ipython
+pip install matplotlib
+pip install modern_robotics
+pip install mujoco==2.3.7
+pip install opencv-python
+pip install packaging
+pip install pexpect
 pip install pyquaternion
 pip install pyyaml
 pip install rospkg
-pip install pexpect
-pip install mujoco==2.3.7
-pip install dm_control==1.0.14
-pip install opencv-python
-pip install matplotlib
-pip install einops
-pip install packaging
-pip install h5py
-pip install ipython
+pip install torch
+pip install torchvision
+pip install transforms3d
 pip install wandb
 cd /path/to/act/detr && pip install -e .
 ```
