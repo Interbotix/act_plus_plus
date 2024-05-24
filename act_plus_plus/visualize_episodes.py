@@ -1,8 +1,9 @@
 import argparse
 import os
 
-from act_plus_plus.constants import DT, JOINT_NAMES
-from act_plus_plus.utils import (
+from aloha.constants import DT, JOINT_NAMES
+
+from utils import (
     save_videos,
     visualize_joints,
     load_hdf5,
