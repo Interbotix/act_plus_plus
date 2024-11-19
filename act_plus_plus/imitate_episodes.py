@@ -401,7 +401,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                                 dim=2
                             )
                     if temporal_agg:
-                        all_time_actions[[t], t:t+num_queries] = all_actions
+                        all_time_actions[[t], t:t+num_queries-BASE_DELAY] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
                         actions_populated = torch.all(actions_for_curr_step != 0, axis=1)
                         actions_for_curr_step = actions_for_curr_step[actions_populated]
