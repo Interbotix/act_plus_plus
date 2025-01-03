@@ -46,7 +46,6 @@ def main(args):
     batch_size_train = args['batch_size']
     batch_size_val = args['batch_size']
     num_steps = args['num_steps']
-    eval_every = args['eval_every']
     validate_every = args['validate_every']
     save_every = args['save_every']
     resume_ckpt_path = args['resume_ckpt_path']
@@ -124,7 +123,6 @@ def main(args):
         'camera_names': camera_names,
         'ckpt_dir': ckpt_dir,
         'episode_len': episode_len,
-        'eval_every': eval_every,
         'lr': args['lr'],
         'num_steps': num_steps,
         'onscreen_render': onscreen_render,
@@ -523,7 +521,6 @@ def train_bc(train_dataloader, val_dataloader, config):
     seed = config['seed']
     policy_class = config['policy_class']
     policy_config = config['policy_config']
-    eval_every = config['eval_every']
     validate_every = config['validate_every']
     save_every = config['save_every']
 
@@ -568,15 +565,6 @@ def train_bc(train_dataloader, val_dataloader, config):
             for k, v in validation_summary.items():
                 summary_string += f'{k}: {v.item():.3f} '
             print(summary_string)
-
-        # evaluation
-        if (step > 0) and (step % eval_every == 0):
-            # first save then eval
-            ckpt_name = f'policy_step_{step}_seed_{seed}.ckpt'
-            ckpt_path = os.path.join(ckpt_dir, ckpt_name)
-            torch.save(policy.serialize(), ckpt_path)
-            success, _ = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=10)
-            wandb.log({'success': success}, step=step)
 
         # training
         policy.train()
@@ -674,14 +662,6 @@ if __name__ == '__main__':
         type=float,
         help='Training learning rate',
         required=True
-    )
-    parser.add_argument(
-        '--eval_every',
-        action='store',
-        type=int,
-        default=500,
-        help='Number of steps between evaluations during training',
-        required=False,
     )
     parser.add_argument(
         '--validate_every',
